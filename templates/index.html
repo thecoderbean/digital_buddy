@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sci-Fi AI Digital Companion</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: #020204;
+            color: #66fcf1;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hud-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+            opacity: 0.2;
+            transition: opacity 0.3s ease;
+        }
+
+        .hud-controls:hover {
+            opacity: 1;
+        }
+
+        .icon-btn {
+            background: rgba(11, 12, 16, 0.9);
+            border: 1px solid #45a29e;
+            color: #66fcf1;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: #66fcf1;
+            color: #020204;
+            transform: scale(1.15);
+        }
+
+        .icon-btn.listening {
+            background: #ff3333;
+            color: #fff;
+            border-color: #ff0055;
+            box-shadow: 0 0 20px #ff3333;
+            animation: micPulse 0.8s infinite alternate;
+        }
+
+        @keyframes micPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .character-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            background: radial-gradient(circle, #0c1220 0%, #020204 100%);
+            animation: hyperPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes hyperPulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.03); filter: brightness(1.15); }
+        }
+
+        .eyes-container {
+            display: flex;
+            gap: 110px;
+            align-items: center;
+            justify-content: center;
+            animation: organicHover 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes organicHover {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-10px) rotate(0.5deg); }
+        }
+
+        .eye {
+            width: 170px;
+            height: 170px;
+            background-color: #66fcf1;
+            border-radius: 38px;
+            box-shadow: 0 0 70px rgba(102, 252, 241, 0.7), inset 0 0 30px rgba(0, 0, 0, 0.85);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pupil {
+            width: 55px;
+            height: 55px;
+            background-color: #020204;
+            border-radius: 16px;
+            transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1), width 0.3s ease, height 0.3s ease;
+        }
+
+        .blink {
+            height: 10px !important;
+            border-radius: 5px !important;
+            transform: scaleY(0.1);
+        }
+
+        .mouth-container {
+            width: 120px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cyber-mouth {
+            width: 80px;
+            height: 8px;
+            background-color: #66fcf1;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.7);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .cyber-mouth.happy { width: 90px; height: 14px; border-radius: 0 0 20px 20px; background-color: #00ff88; box-shadow: 0 0 30px #00ff88; }
+        .cyber-mouth.sad { width: 80px; height: 12px; border-radius: 20px 20px 0 0; background-color: #00bfff; box-shadow: 0 0 30px #00bfff; }
+        .cyber-mouth.angry { width: 85px; height: 8px; transform: rotate(5deg); background-color: #ff3333; box-shadow: 0 0 30px #ff3333; }
+        .cyber-mouth.surprised, .cyber-mouth.shocked { width: 35px; height: 35px; border-radius: 50%; background-color: #ffff00; box-shadow: 0 0 35px #ffff00; }
+        .cyber-mouth.sleepy { width: 40px; height: 4px; border-radius: 2px; background-color: #8892b0; opacity: 0.6; }
+        .cyber-mouth.love { width: 60px; height: 16px; border-radius: 0 0 30px 30px; background-color: #ff3399; box-shadow: 0 0 30px #ff3399; }
+        .cyber-mouth.curious { width: 25px; height: 25px; border-radius: 50%; transform: translateX(15px); }
+        .cyber-mouth.giggle { animation: mouthGiggle 0.2s infinite alternate; }
+
+        @keyframes mouthGiggle {
+            0% { width: 70px; height: 10px; }
+            100% { width: 95px; height: 16px; }
+        }
+
+        .eye.happy { border-radius: 90px 90px 25px 25px; background-color: #00ff88; box-shadow: 0 0 90px #00ff88; transform: translateY(-8px) scale(1.05); }
+        .eye.sad { border-radius: 25px 25px 90px 90px; background-color: #00bfff; box-shadow: 0 0 90px #00bfff; transform: rotate(-12deg) translateY(10px); }
+        .eye.sad:nth-child(2) { transform: rotate(12deg) translateY(10px); }
+        .eye.angry { background-color: #ff3333; box-shadow: 0 0 90px #ff3333; clip-path: polygon(0 30%, 100% 0, 100% 100%, 0 100%); transform: scale(1.08); }
+        .eye.surprised { width: 195px; height: 195px; border-radius: 50%; background-color: #ffff00; box-shadow: 0 0 110px #ffff00; transform: scale(1.12); }
+        .eye.curious { width: 150px; height: 190px; border-radius: 60px; transform: rotate(-5deg); }
+        .eye.curious:nth-child(2) { width: 170px; height: 170px; border-radius: 50%; transform: rotate(5deg); }
+        .eye.shocked { width: 190px; height: 190px; border-radius: 50%; background-color: #ff0055; box-shadow: 0 0 100px #ff0055; animation: hyperJitter 0.08s infinite alternate; }
+
+        @keyframes hyperJitter {
+            0% { transform: translate(4px, -3px) rotate(-3deg); }
+            100% { transform: translate(-4px, 3px) rotate(3deg); }
+        }
+
+        .eye.sleepy { height: 25px; border-radius: 12px; background-color: #8892b0; box-shadow: 0 0 30px #8892b0; transform: translateY(20px); }
+        .eye.love { background-color: #ff3399; box-shadow: 0 0 90px #ff3399; border-radius: 60px 60px 15px 60px; transform: rotate(-45deg) scale(1.15); }
+        .eye.love:nth-child(2) { transform: rotate(45deg) scale(1.15); }
+        .eye.wink-left:nth-child(1) { height: 10px !important; border-radius: 5px !important; transform: scaleY(0.1); }
+        .giggle { animation: sciFiGiggle 0.25s ease-in-out infinite alternate !important; }
+
+        @keyframes sciFiGiggle {
+            0% { transform: translateY(0) rotate(-8deg) scale(1.02); }
+            100% { transform: translateY(-20px) rotate(8deg) scale(1.05); }
+        }
+
+        .mirror-screen {
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background-color: #000;
+            position: relative;
+        }
+
+        .video-feed {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: block;
+            filter: contrast(1.2) hue-rotate(10deg);
+        }
+
+        .telemetry-hud {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            background: rgba(11, 12, 16, 0.85);
+            border: 1px solid #45a29e;
+            padding: 18px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            line-height: 1.5;
+            box-shadow: 0 0 25px rgba(102, 252, 241, 0.25);
+            backdrop-filter: blur(5px);
+            z-index: 500;
+            min-width: 260px;
+        }
+
+        .telemetry-hud .hud-title {
+            color: #66fcf1;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #45a29e;
+            padding-bottom: 4px;
+            letter-spacing: 1px;
+        }
+
+        .telemetry-hud .hud-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .telemetry-hud .hud-label { color: #8892b0; }
+        .telemetry-hud .hud-value { color: #00ff88; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="hud-controls">
+        <button class="icon-btn" id="micBtn" onclick="toggleContinuousChat()" title="Toggle Continuous Voice Chat">🎙️</button>
+        <button class="icon-btn" id="audioBtn" onclick="toggleAudio()" title="Toggle Sci-Fi Sounds">🔊</button>
+        <button class="icon-btn" id="modeToggleBtn" onclick="toggleMode()" title="Toggle Mirror Mode">🪞</button>
+        <button class="icon-btn" onclick="toggleFullScreen()" title="Fullscreen">⛶</button>
+    </div>
+
+    <div class="container">
+        <div class="character-screen" id="characterScreen">
+            <div class="eyes-container" id="eyesContainer">
+                <div class="eye" id="leftEye"><div class="pupil" id="leftPupil"></div></div>
+                <div class="eye" id="rightEye"><div class="pupil" id="rightPupil"></div></div>
+            </div>
+            <div class="mouth-container">
+                <div class="cyber-mouth" id="cyberMouth"></div>
+            </div>
+        </div>
+
+        <div class="mirror-screen" id="mirrorScreen">
+            <img id="videoFeed" class="video-feed" alt="Camera Feed">
+            <div class="telemetry-hud">
+                <div class="hud-title">[ ROBOT TELEMETRY ]</div>
+                <div class="hud-row"><span class="hud-label">State:</span> <span class="hud-value" id="hudEmotion">neutral</span></div>
+                <div class="hud-row"><span class="hud-label">Gesture:</span> <span class="hud-value" id="hudGesture" style="color: #00bfff;">none</span></div>
+                <div class="hud-row"><span class="hud-label">Excitement:</span> <span class="hud-value" id="hudExcitement" style="color: #ffff00;">0.50</span></div>
+                <div class="hud-row"><span class="hud-label">Energy:</span> <span class="hud-value" id="hudEnergy">0.90</span></div>
+                <div class="hud-row"><span class="hud-label">Affection:</span> <span class="hud-value" id="hudAffection" style="color: #ff3399;">0.20</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'character';
+        let currentAnim = 'neutral';
+        let audioEnabled = true;
+        let audioCtx = null;
+        let isHandTrackingActive = false;
+
+        const leftEye = document.getElementById('leftEye');
+        const rightEye = document.getElementById('rightEye');
+        const leftPupil = document.getElementById('leftPupil');
+        const rightPupil = document.getElementById('rightPupil');
+        const eyesContainer = document.getElementById('eyesContainer');
+        const cyberMouth = document.getElementById('cyberMouth');
+        const videoFeed = document.getElementById('videoFeed');
+
+        videoFeed.src = "{{ url_for('video_feed') }}";
+
+        function playSciFiSound(type) {
+            if (!audioEnabled) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'beep') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1300, now + 0.08);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'giggle') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(550, now);
+                osc.frequency.setValueAtTime(1200, now + 0.12);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                osc.start(now); osc.stop(now + 0.22);
+            } else if (type === 'shocked') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'chirp') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1300, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audioBtn').innerText = audioEnabled ? '🔊' : '🔇';
+        }
+
+        function toggleMode() {
+            const charScreen = document.getElementById('characterScreen');
+            const mirrorScreen = document.getElementById('mirrorScreen');
+            const btn = document.getElementById('modeToggleBtn');
+            playSciFiSound('chirp');
+
+            if (currentMode === 'character') {
+                currentMode = 'mirror';
+                charScreen.style.display = 'none';
+                mirrorScreen.style.display = 'flex';
+                btn.innerText = '👤';
+            } else {
+                currentMode = 'character';
+                mirrorScreen.style.display = 'none';
+                charScreen.style.display = 'flex';
+                btn.innerText = '🪞';
+            }
+        }
+
+        function toggleFullScreen() {
+            playSciFiSound('beep');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function setAnimation(anim) {
+            if (currentAnim === anim) return;
+            currentAnim = anim;
+            leftEye.className = 'eye';
+            rightEye.className = 'eye';
+            eyesContainer.classList.remove('giggle');
+            cyberMouth.className = 'cyber-mouth';
+
+            switch (anim) {
+                case 'happy': 
+                    leftEye.classList.add('happy'); rightEye.classList.add('happy'); 
+                    cyberMouth.classList.add('happy'); playSciFiSound('chirp'); break;
+                case 'sad': 
+                    leftEye.classList.add('sad'); rightEye.classList.add('sad'); 
+                    cyberMouth.classList.add('sad'); playSciFiSound('chirp'); break;
+                case 'angry': 
+                    leftEye.classList.add('angry'); rightEye.classList.add('angry'); 
+                    cyberMouth.classList.add('angry'); playSciFiSound('shocked'); break;
+                case 'surprised': 
+                    leftEye.classList.add('surprised'); rightEye.classList.add('surprised'); 
+                    cyberMouth.classList.add('surprised'); playSciFiSound('chirp'); break;
+                case 'curious': 
+                    leftEye.classList.add('curious'); rightEye.classList.add('curious'); 
+                    cyberMouth.classList.add('curious'); playSciFiSound('beep'); break;
+                case 'shocked': 
+                    leftEye.classList.add('shocked'); rightEye.classList.add('shocked'); 
+                    cyberMouth.classList.add('shocked'); playSciFiSound('shocked'); break;
+                case 'sleepy': 
+                    leftEye.classList.add('sleepy'); rightEye.classList.add('sleepy'); 
+                    cyberMouth.classList.add('sleepy'); break;
+                case 'love': 
+                    leftEye.classList.add('love'); rightEye.classList.add('love'); 
+                    cyberMouth.classList.add('love'); playSciFiSound('chirp'); break;
+                case 'wink': 
+                    leftEye.classList.add('wink-left'); playSciFiSound('beep'); break;
+                case 'giggle': 
+                    eyesContainer.classList.add('giggle'); leftEye.classList.add('happy'); rightEye.classList.add('happy'); 
+                    cyberMouth.classList.add('giggle'); playSciFiSound('giggle'); break;
+                default: break;
+            }
+        }
+
+        // --- CONTINUOUS SPEECH RECOGNITION & SYNTHESIS ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isContinuousActive = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                if (isContinuousActive) {
+                    document.getElementById('micBtn').classList.add('listening');
+                    setAnimation('curious');
+                }
+            };
+
+            recognition.onresult = async (event) => {
+                const command = event.results[0][0].transcript;
+                console.log("User Command:", command);
+                
+                if (command.toLowerCase().includes('stop listening') || command.toLowerCase().includes('shut down')) {
+                    stopContinuousChat();
+                    speakText("Entering standby mode.", 'sleepy');
+                    return;
+                }
+
+                setAnimation('surprised');
+                await processUserCommand(command);
+            };
+
+            recognition.onerror = (event) => {
+                console.log("Speech recognition error:", event.error);
+            };
+
+            recognition.onend = () => {
+                if (isContinuousActive) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log("Recognition restart skipped:", e);
+                    }
+                } else {
+                    document.getElementById('micBtn').classList.remove('listening');
+                    setAnimation('neutral');
+                }
+            };
+        }
+
+        function toggleContinuousChat() {
+            if (!recognition) {
+                alert("Speech recognition is not supported in this browser.");
+                return;
+            }
+
+            isContinuousActive = !isContinuousActive;
+            const micBtn = document.getElementById('micBtn');
+
+            if (isContinuousActive) {
+                micBtn.classList.add('listening');
+                playSciFiSound('beep');
+                speakText("Continuous neural link activated. I am listening.", 'happy');
+                setTimeout(() => {
+                    try { recognition.start(); } catch (e) {}
+                }, 1500);
+            } else {
+                stopContinuousChat();
+                speakText("Microphone offline.", 'neutral');
+            }
+        }
+
+        function stopContinuousChat() {
+            isContinuousActive = false;
+            document.getElementById('micBtn').classList.remove('listening');
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+            }
+            setAnimation('neutral');
+        }
+
+        function speakText(text, emotion = 'happy') {
+            setAnimation(emotion);
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.1;
+                
+                utterance.onend = () => {
+                    if (isContinuousActive) {
+                        setAnimation('curious');
+                    } else {
+                        setAnimation('neutral');
+                    }
+                };
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        async function processUserCommand(text) {
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await response.json();
+                speakText(data.reply, data.emotion || 'happy');
+            } catch (err) {
+                speakText("Telemetry link interruption.", 'angry');
+            }
+        }
+
+        function triggerBlink() {
+            if (currentAnim === 'sleepy' || isContinuousActive) return;
+            leftEye.classList.add('blink');
+            rightEye.classList.add('blink');
+            playSciFiSound('beep');
+
+            setTimeout(() => {
+                leftEye.classList.remove('blink');
+                rightEye.classList.remove('blink');
+            }, 120);
+
+            setTimeout(triggerBlink, Math.random() * 2500 + 1500);
+        }
+        setTimeout(triggerBlink, 2000);
+
+        let idleLookX = 0;
+        let idleLookY = 0;
+
+        function updateIdlePupils() {
+            if (!isHandTrackingActive && currentMode === 'character') {
+                if (Math.random() < 0.3) {
+                    idleLookX = (Math.random() - 0.5) * 55;
+                    idleLookY = (Math.random() - 0.5) * 45;
+                }
+                leftPupil.style.transform = `translate(${idleLookX}px, ${idleLookY}px)`;
+                rightPupil.style.transform = `translate(${idleLookX}px, ${idleLookY}px)`;
+            }
+        }
+        setInterval(updateIdlePupils, 1400);
+
+        setInterval(() => {
+            fetch('/get_status')
+                .then(res => res.json())
+                .then(data => {
+                    const hand = data.hand;
+                    const robotEmotion = data.emotion;
+                    const mood = data.mood;
+                    const gesture = data.gesture;
+
+                    if (mood) {
+                        document.getElementById('hudEmotion').innerText = robotEmotion;
+                        document.getElementById('hudGesture').innerText = gesture;
+                        document.getElementById('hudExcitement').innerText = mood.excitement.toFixed(2);
+                        document.getElementById('hudEnergy').innerText = mood.energy.toFixed(2);
+                        document.getElementById('hudAffection').innerText = mood.affection.toFixed(2);
+                    }
+
+                    if (mood) {
+                        const scaleFactor = 1 + (mood.excitement * 0.25) - (mood.irritation * 0.15);
+                        leftPupil.style.width = `${55 * scaleFactor}px`;
+                        leftPupil.style.height = `${55 * scaleFactor}px`;
+                        rightPupil.style.width = `${55 * scaleFactor}px`;
+                        rightPupil.style.height = `${55 * scaleFactor}px`;
+                    }
+
+                    if (currentMode === 'character' && hand.detected) {
+                        isHandTrackingActive = true;
+                        const moveX = (hand.norm_x - 0.5) * 90;
+                        const moveY = (hand.norm_y - 0.5) * 90;
+                        leftPupil.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                        rightPupil.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    } else {
+                        isHandTrackingActive = false;
+                    }
+
+                    if (currentMode === 'character' && !isContinuousActive) {
+                        setAnimation(robotEmotion);
+                    }
+                })
+                .catch(err => {});
+        }, 120);
+    </script>
+</body>
+</html>
